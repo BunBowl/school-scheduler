@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SD School Scheduler</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; color: #1a202c; }
+header { background: #2b6cb0; color: white; padding: 18px 32px; display: flex; align-items: center; gap: 16px; }
+header h1 { font-size: 1.5rem; font-weight: 700; }
+header span { font-size: 0.9rem; opacity: 0.8; }
+.container { max-width: 1500px; margin: 0 auto; padding: 24px; }
+.top-bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 24px; }
+.btn { padding: 10px 22px; border: none; border-radius: 8px; font-size: 0.95rem; cursor: pointer; font-weight: 600; transition: background 0.2s; }
+.btn-primary { background: #2b6cb0; color: white; }
+.btn-primary:hover { background: #2c5282; }
+.btn-danger { background: #c53030; color: white; }
+.btn-danger:hover { background: #9b2c2c; }
+.btn-success { background: #276749; color: white; }
+.btn-success:hover { background: #1e4e37; }
+.badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.78rem; font-weight: 600; }
+.badge-blue { background: #bee3f8; color: #2a69ac; }
+.badge-green { background: #c6f6d5; color: #22543d; }
+.badge-red { background: #fed7d7; color: #9b2c2c; }
+.layout { display: grid; grid-template-columns: 270px 1fr; gap: 24px; }
+.sidebar { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.08); height: fit-content; position: sticky; top: 20px; }
+.sidebar h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: .06em; color: #718096; margin-bottom: 10px; }
+.teacher-list { list-style: none; max-height: 72vh; overflow-y: auto; }
+.teacher-list li { padding: 8px 12px; border-radius: 7px; cursor: pointer; font-size: 0.88rem; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.teacher-list li:hover { background: #ebf8ff; }
+.teacher-list li.active { background: #bee3f8; color: #2a69ac; font-weight: 700; }
+.main-area { min-width: 0; }
+.main-panel { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+.timetable-wrap { overflow-x: auto; }
+table.tt { border-collapse: collapse; width: 100%; min-width: 760px; }
+table.tt th { background: #2b6cb0; color: white; padding: 9px 12px; font-size: 0.82rem; text-align: center; white-space: nowrap; }
+table.tt th.time-col { background: #1a4a8a; min-width: 130px; }
+table.tt td { border: 1px solid #e2e8f0; padding: 5px 7px; font-size: 0.8rem; text-align: center; vertical-align: middle; height: 50px; min-width: 120px; }
+table.tt td.time-label { background: #f7fafc; font-weight: 600; color: #4a5568; font-size: 0.78rem; white-space: nowrap; text-align: left; padding-left: 10px; }
+table.tt tr.break-row td { background: #fffbeb; color: #744210; font-style: italic; font-size: 0.78rem; font-weight: 600; height: 28px; border: 1px solid #fbd38d; }
+table.tt tr.break-row td.time-label { background: #fef3c7; }
+.cell { border-radius: 6px; padding: 4px 5px; }
+.cell .subj { font-weight: 700; font-size: 0.8rem; }
+.cell .cls  { color: #4a5568; font-size: 0.72rem; margin-top: 1px; }
+.stats-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
+.stat-card { background: #f7fafc; border-radius: 10px; padding: 12px 18px; min-width: 130px; }
+.stat-card .val { font-size: 1.5rem; font-weight: 700; color: #2b6cb0; }
+.stat-card .lbl { font-size: 0.76rem; color: #718096; margin-top: 2px; }
+.tab-row { display: flex; gap: 2px; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; }
+.tab { padding: 9px 18px; border: none; background: none; cursor: pointer; font-size: 0.9rem; color: #718096; border-bottom: 3px solid transparent; margin-bottom: -2px; font-weight: 500; }
+.tab.active { color: #2b6cb0; border-bottom-color: #2b6cb0; font-weight: 700; }
+.conflict-list { margin-top: 8px; }
+.conflict-item { background: #fff5f5; border-left: 4px solid #fc8181; padding: 8px 12px; border-radius: 4px; margin-bottom: 6px; font-size: 0.83rem; color: #c53030; }
+.empty-state { text-align: center; padding: 60px 20px; color: #a0aec0; }
+.empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+.class-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px,1fr)); gap: 20px; }
+.class-card { border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
+.class-card-hdr { background: #2b6cb0; color: white; padding: 9px 14px; font-weight: 700; font-size: 0.88rem; }
+.class-card table { width: 100%; border-collapse: collapse; font-size: 0.74rem; }
+.class-card td, .class-card th { border: 1px solid #e2e8f0; padding: 4px 5px; text-align: center; }
+.class-card th { background: #edf2f7; color: #4a5568; font-size: 0.72rem; }
+.class-card tr.break-row td { background: #fffbeb; color: #92400e; font-style: italic; font-size: 0.7rem; }
+@media print {
+  .top-bar, .tab-row, .sidebar { display: none !important; }
+  .layout { display: block !important; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>📅 SD School Scheduler</h1>
+    <span>Automatic timetable generator · Grades 1–6 · Monday–Friday</span>
+  </div>
+</header>
+<div class="container">
+  <div class="top-bar">
+    <button class="btn btn-primary" onclick="runScheduler()">▶ Generate Schedule</button>
+    <button class="btn btn-danger"  onclick="resetSchedule()">↺ Reset</button>
+    <button class="btn btn-success" onclick="exportCSV()">⬇ Export CSV</button>
+    <span id="statusBadge"></span>
+  </div>
+  <div id="app">
+    <div class="empty-state">
+      <div class="icon">🗓️</div>
+      <p style="font-size:1.1rem;font-weight:600;color:#4a5568">Click "Generate Schedule" to build the timetable</p>
+      <p style="margin-top:8px;font-size:0.9rem">Assigns all SD teachers to time slots, respecting recess and lunch breaks.</p>
+    </div>
+  </div>
+</div>
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// TIME SLOT DEFINITIONS
+// Each "row" in the timetable corresponds to a time band.
+// type: 'lesson' = teachable slot | 'break' = blocked for everyone
+//        'lunch13' = blocked for grades 1-3 | 'lunch46' = blocked for grades 4-6
+// gradeGroup: '1-3' classes are 1A-3D, '4-6' are 4A-6C
+// ═══════════════════════════════════════════════════════════════════════════
+const TIME_ROWS = [
+  { id:'s1',  label:'08.00 – 08.35', type:'lesson' },
+  { id:'s2',  label:'08.35 – 09.10', type:'lesson' },
+  { id:'s3',  label:'09.10 – 09.45', type:'lesson' },
+  { id:'rec', label:'09.45 – 10.00 · RECESS',    type:'break'   },
+  { id:'s4',  label:'10.00 – 10.35', type:'lesson' },
+  { id:'s5',  label:'10.35 – 11.10', type:'lesson' },
+  { id:'s6',  label:'11.10 – 11.45', type:'lesson' },
+  { id:'ln1', label:'11.45 – 12.15 · LUNCH (Gr.1–3)', type:'lunch13' },
+  { id:'s7a', label:'12.15 – 12.50', type:'lesson13' }, // only gr.1-3 teach here
+  { id:'ln2', label:'12.20 – 12.50 · LUNCH (Gr.4–6)', type:'lunch46' },
+  { id:'s7b', label:'12.50 – 13.25', type:'lesson'   }, // both groups can use this
+  { id:'s8',  label:'13.25 – 14.00', type:'lesson'   },
+];
+
+// Teachable slot IDs for each grade group
+// Gr.1-3: s1-s6, s7a, s7b, s8   (lunch is ln1, so s7a starts after)
+// Gr.4-6: s1-s6, s7b, s8        (lunch is ln2 which overlaps s7a, so skip s7a)
+const LESSON_SLOTS_GR13 = ['s1','s2','s3','s4','s5','s6','s7a','s7b','s8'];
+const LESSON_SLOTS_GR46 = ['s1','s2','s3','s4','s5','s6','s7b','s8'];
+
+const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+
+function gradeGroup(cls) {
+  const g = parseInt(cls);
+  return g <= 3 ? '1-3' : '4-6';
+}
+function lessonSlots(cls) {
+  return gradeGroup(cls) === '1-3' ? LESSON_SLOTS_GR13 : LESSON_SLOTS_GR46;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SUBJECT COLORS
+// ═══════════════════════════════════════════════════════════════════════════
+const SUBJECT_COLORS = {
+  'PKn':          '#bee3f8',
+  'Bah. Indo':    '#c6f6d5',
+  'English':      '#fefcbf',
+  'Math':         '#fed7d7',
+  'Science':      '#e9d8fd',
+  'CB':           '#e2e8f0',
+  'IPAS':         '#fbd38d',
+  'Coding':       '#b2f5ea',
+  'SBK':          '#fbb6ce',
+  'PJOK':         '#c3dafe',
+  'Mandarin':     '#d6bcfa',
+  'Agama':        '#faf089',   // unified agama color
+  'Agama Islam':  '#faf089',
+  'Agama Kristen':'#f0fff4',
+  'Agama Katolik':'#e6fffa',
+  'Agama Buddha': '#fffff0',
+  'IPS':          '#fed7e2',
+};
+function subjectColor(s) {
+  for (const k of Object.keys(SUBJECT_COLORS))
+    if (s && s.startsWith(k)) return SUBJECT_COLORS[k];
+  return '#f7fafc';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SD TEACHER DATA
+// jpEach = JP periods per week for EACH class listed
+// Based on: x classes × jpEach JP/week
+// Available slots: Gr.1-3 = 9 slots/day × 5 days = 45/week
+//                  Gr.4-6 = 8 slots/day × 5 days = 40/week
+// ═══════════════════════════════════════════════════════════════════════════
+const RAW_DATA = [
+  // ── Agama: 2 JP per grade, same day, synchronized ──────────────────────
+  { teacher:'Ms Irma',     subject:'Agama Kristen', classes:['1A','1B','1C','1D','1E','2A','2B','2C','2D','3A','3B','3C','3D','4A','4B','4C','5A','5B','5C','6A','6B','6C'], jpEach:2 },
+  { teacher:'Mr Aldin',    subject:'Agama Islam',   classes:['1A','1B','1C','1D','1E','2A','2B','2C','2D','3A','3B','3C','3D','4A','4B','4C','5A','5B','5C','6A','6B','6C'], jpEach:2 },
+  { teacher:'Mr Stefano',  subject:'Agama Katolik', classes:['1A','1B','1C','1D','1E','2A','2B','2C','2D','3A','3B','3C','3D','4A','4B','4C','5A','5B','5C','6A','6B','6C'], jpEach:2 },
+  { teacher:'Mr Ziendi',   subject:'Agama Buddha',  classes:['1A','1B','1C','1D','1E','2A','2B','2C','2D','3A','3B','3C','3D','4A','4B','4C','5A','5B','5C','6A','6B','6C'], jpEach:2 },
+
+  // ── Mandarin ─────────────────────────────────────────────────────────────
+  { teacher:'Ls Inke',   subject:'Mandarin', classes:['1A','1B','1C','1D','1E','2A','2B','2C','2D'], jpEach:3 },
+  { teacher:'Ls Junie',  subject:'Mandarin', classes:['3A','3B','3C','3D','4A','4B','4C','5A','5B','5C'], jpEach:3 },
+  { teacher:'Ls Devita', subject:'Mandarin', classes:['6A','6B','6C'], jpEach:3 },
+
+  // ── Grade 1 homeroom (each teacher handles ONE class fully) ─────────────
+  // Total per class: 2+3+3+2+5+4+3+3+4 = 29 + Agama2 + Mandarin3 = 34... 
+  // Grade 1 has 45 slots. Remaining 11 filled by specialist teachers below.
+  { teacher:'Ms Qiqi',    subject:'PKn',       classes:['1A'], jpEach:3 },
+  { teacher:'Ms Qiqi',    subject:'Bah. Indo', classes:['1A'], jpEach:5 },
+  { teacher:'Ms Qiqi',    subject:'CB',        classes:['1A'], jpEach:2 },
+  { teacher:'Ms Qiqi',    subject:'Math',      classes:['1A'], jpEach:5 },
+  { teacher:'Ms Qiqi',    subject:'Science',   classes:['1A'], jpEach:4 },
+  { teacher:'Ms Della',   subject:'PKn',       classes:['1B'], jpEach:3 },
+  { teacher:'Ms Della',   subject:'Bah. Indo', classes:['1B'], jpEach:5 },
+  { teacher:'Ms Della',   subject:'CB',        classes:['1B'], jpEach:2 },
+  { teacher:'Ms Della',   subject:'Math',      classes:['1B'], jpEach:5 },
+  { teacher:'Ms Della',   subject:'Science',   classes:['1B'], jpEach:4 },
+  { teacher:'Ms Natlie',  subject:'PKn',       classes:['1C'], jpEach:3 },
+  { teacher:'Ms Natlie',  subject:'Bah. Indo', classes:['1C'], jpEach:5 },
+  { teacher:'Ms Natlie',  subject:'CB',        classes:['1C'], jpEach:2 },
+  { teacher:'Ms Natlie',  subject:'Math',      classes:['1C'], jpEach:5 },
+  { teacher:'Ms Natlie',  subject:'Science',   classes:['1C'], jpEach:4 },
+  { teacher:'Ms Suri',    subject:'PKn',       classes:['1D'], jpEach:3 },
+  { teacher:'Ms Suri',    subject:'Bah. Indo', classes:['1D'], jpEach:5 },
+  { teacher:'Ms Suri',    subject:'CB',        classes:['1D'], jpEach:2 },
+  { teacher:'Ms Suri',    subject:'Math',      classes:['1D'], jpEach:5 },
+  { teacher:'Ms Suri',    subject:'Science',   classes:['1D'], jpEach:4 },
+  { teacher:'Ms Cinthya', subject:'PKn',       classes:['1E'], jpEach:3 },
+  { teacher:'Ms Cinthya', subject:'Bah. Indo', classes:['1E'], jpEach:5 },
+  { teacher:'Ms Cinthya', subject:'CB',        classes:['1E'], jpEach:2 },
+  { teacher:'Ms Cinthya', subject:'Math',      classes:['1E'], jpEach:5 },
+  { teacher:'Ms Cinthya', subject:'Science',   classes:['1E'], jpEach:4 },
+
+  // Grade 1 specialist: English(6) + SBK(3) + PJOK(3) + Coding(4) = 16
+  // Agama(2) + Mandarin(3) + homeroom(22) + specialists(16) = 43 → need 2 more
+  // Add English to homeroom teachers to reach 45
+  { teacher:'Ms Qiqi',    subject:'English',   classes:['1A'], jpEach:8 },
+  { teacher:'Ms Della',   subject:'English',   classes:['1B'], jpEach:8 },
+  { teacher:'Ms Natlie',  subject:'English',   classes:['1C'], jpEach:8 },
+  { teacher:'Ms Suri',    subject:'English',   classes:['1D'], jpEach:8 },
+  { teacher:'Ms Cinthya', subject:'English',   classes:['1E'], jpEach:8 },
+
+  // ── Grade 2: PKn(3)+BaInd(5)+CB(2)+Math(7)+Science(4)+English(8)+Coding(4) = 33
+  // + Agama(2)+Mandarin(3)+SBK(3)+PJOK(3) = 44 → +1 from CB for 2B/2C/2D ──
+  { teacher:'Ms Desi',   subject:'PKn',       classes:['2A','2B','2C','2D'], jpEach:3 },
+  { teacher:'Ms Desi',   subject:'Bah. Indo', classes:['2A','2B','2C','2D'], jpEach:5 },
+  { teacher:'Ms Desi',   subject:'CB',        classes:['2A','2B','2C','2D'], jpEach:2 },
+  { teacher:'Mr Dom',    subject:'Math',      classes:['2A','2B','2C','2D'], jpEach:7 },
+  { teacher:'Mr Naufal', subject:'Science',   classes:['2A','2B','2C','2D'], jpEach:4 },
+  { teacher:'Ms Wildha', subject:'English',   classes:['2A','2B','2C','2D'], jpEach:8 },
+  { teacher:'Ms Sri',    subject:'Coding',    classes:['2A','2B','2C','2D'], jpEach:4 },
+
+  // ── Grade 3: PKn(3)+BaInd(4)+CB(2)+Math(5)+Sci(4)+Eng(7)+Coding(4)+IPAS(4)=33
+  // + Agama(2)+Mandarin(3)+SBK(3)+PJOK(3) = 44 → CB only 3A, rest get +1 PKn ──
+  { teacher:'Ms Sari',      subject:'PKn',       classes:['3A','3B','3C','3D'], jpEach:3 },
+  { teacher:'Ms Sari',      subject:'Bah. Indo', classes:['3A','3B','3C','3D'], jpEach:4 },
+  { teacher:'Ms Sari',      subject:'CB',        classes:['3A','3B','3C','3D'], jpEach:2 },
+  { teacher:'Ms Dwi',       subject:'Math',      classes:['3A','3B','3C','3D'], jpEach:5 },
+  { teacher:'Ms Fitriyani', subject:'Science',   classes:['3A','3B','3C','3D'], jpEach:4 },
+  { teacher:'Ms English3',  subject:'English',   classes:['3A','3B','3C','3D'], jpEach:7 },
+  { teacher:'Mr Reza',      subject:'Coding',    classes:['3A','3B','3C','3D'], jpEach:4 },
+  { teacher:'Ms Tari',      subject:'IPAS',      classes:['3A','3B','3C','3D'], jpEach:4 },
+
+  // ── Grade 4: 8 slots/day × 5 = 40 JP/week ────────────────────────────────
+  // PKn(3)+BaInd(4)+Math(4)+Eng(5)+Sci(4)+Coding(3)+IPAS(5)+SBK(3)+PJOK(3)=34
+  // + Agama(2)+Mandarin(3) = 39 → +1 = 40 (add 1 extra to PKn)
+  { teacher:'Ms Yanti',     subject:'PKn',       classes:['4A','4B','4C'], jpEach:3 },
+  { teacher:'Ms Sri',       subject:'Bah. Indo', classes:['4A','4B','4C'], jpEach:4 },
+  { teacher:'Ms Hikmah',    subject:'Math',      classes:['4A','4B','4C'], jpEach:4 },
+  { teacher:'Ms Fitriyani', subject:'English',   classes:['4A','4B','4C'], jpEach:5 },
+  { teacher:'Mr Naufal',    subject:'Science',   classes:['4A','4B','4C'], jpEach:4 },
+  { teacher:'Ms Islah',     subject:'Coding',    classes:['4A','4B','4C'], jpEach:3 },
+  { teacher:'Ms Rahma',     subject:'IPAS',      classes:['4A','4B','4C'], jpEach:5 },
+  { teacher:'Mr Mike',      subject:'SBK',       classes:['4A','4B','4C'], jpEach:3 },
+  { teacher:'Mr Chaerul',   subject:'PJOK',      classes:['4A','4B','4C'], jpEach:3 },
+
+  // ── Grade 5: 40 JP/week ───────────────────────────────────────────────────
+  // PKn(3)+BaInd(4)+Math(3)+Eng(5)+Sci(4)+Coding(3)+IPAS(4)+SBK(3)+PJOK(3)=32
+  // + Agama(2)+Mandarin(3) = 37 → +3 = 40 (spread: PKn+1, Math+1, Coding+1)
+  { teacher:'Ms Yanti',    subject:'PKn',       classes:['5A','5B','5C'], jpEach:3 },
+  { teacher:'Ms Devianti', subject:'Bah. Indo', classes:['5A','5B','5C'], jpEach:4 },
+  { teacher:'Ms Hikmah',   subject:'Math',      classes:['5A','5B','5C'], jpEach:4 },
+  { teacher:'Ms Rizky',    subject:'English',   classes:['5A','5B','5C'], jpEach:5 },
+  { teacher:'Ms Rizky',    subject:'Science',   classes:['5A','5B','5C'], jpEach:4 },
+  { teacher:'Ms Annisa',   subject:'Coding',    classes:['5A','5B','5C'], jpEach:4 },
+  { teacher:'Mr Reza',     subject:'IPAS',      classes:['5A','5B','5C'], jpEach:4 },
+  { teacher:'Ms Tiara',    subject:'SBK',       classes:['5A','5B','5C'], jpEach:3 },
+  { teacher:'Mr Nober',    subject:'PJOK',      classes:['5A','5B','5C'], jpEach:3 },
+
+  // ── Grade 6: 40 JP/week ───────────────────────────────────────────────────
+  // PKn(3)+BaInd(4)+Math(3)+Eng(5)+Sci(4)+Coding(3)+SBK(3)+PJOK(3)=28
+  // + Agama(2)+Mandarin(3) = 33 → +7 = 40
+  // Boost: BaInd+1, Math+2, Eng+1, Sci+1, Coding+1, PKn+1
+  { teacher:'Ms Yanti',    subject:'PKn',       classes:['6A','6B','6C'], jpEach:4 },
+  { teacher:'Ms Devianti', subject:'Bah. Indo', classes:['6A','6B','6C'], jpEach:5 },
+  { teacher:'Ms Hikmah',   subject:'Math',      classes:['6A','6B','6C'], jpEach:5 },
+  { teacher:'Ms Ivon',     subject:'English',   classes:['6A','6B','6C'], jpEach:6 },
+  { teacher:'Ms Ivon',     subject:'Science',   classes:['6A','6B','6C'], jpEach:5 },
+  { teacher:'Ms Annisa',   subject:'Coding',    classes:['6A','6B','6C'], jpEach:4 },
+  { teacher:'Ms Tiara',    subject:'SBK',       classes:['6A','6B','6C'], jpEach:3 },
+  { teacher:'Mr Nober',    subject:'PJOK',      classes:['6A','6B','6C'], jpEach:3 },
+
+  // ── SBK & PJOK for grades 1-3 ────────────────────────────────────────────
+  { teacher:'Ms Tiara',  subject:'SBK',  classes:['1A','1B','1C','1D','1E'], jpEach:3 },
+  { teacher:'Mr Mike',   subject:'SBK',  classes:['2A','2B','2C','2D','3A','3B','3C','3D'], jpEach:3 },
+  { teacher:'Mr Nober',  subject:'PJOK', classes:['1A','1B','1C','1D','1E'], jpEach:3 },
+  { teacher:'Mr Chaerul',subject:'PJOK', classes:['2A','2B','2C','2D','3A','3B','3C','3D'], jpEach:3 },
+
+  // ── Coding grade 1 ────────────────────────────────────────────────────────
+  { teacher:'Ms Eunike', subject:'Coding', classes:['1A','1B','1C','1D','1E'], jpEach:4 },
+];
+</script>
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// SCHEDULER
+// Key format: "Day|slotId"  e.g. "Monday|s1"
+//
+// Fix 1: jpEach = total JP slots per week. A double uses 2 JP, single uses 1.
+//         Stop placing once total placed == jpEach.
+// Fix 2: Agama is synchronized — all religion classes for a grade share the
+//         same day+slot so all religions run simultaneously (no class crash).
+// ═══════════════════════════════════════════════════════════════════════════
+let scheduleResult = null;
+let conflictLog    = [];
+
+const AGAMA_SUBJECTS = ['Agama Kristen','Agama Islam','Agama Katolik','Agama Buddha'];
+
+// Consecutive pairs that can form a double period (no break between them)
+const CONSECUTIVE_PAIRS_GR13 = [
+  ['s1','s2'],['s2','s3'],
+  ['s4','s5'],['s5','s6'],
+  ['s7a','s7b'],['s7b','s8'],
+];
+const CONSECUTIVE_PAIRS_GR46 = [
+  ['s1','s2'],['s2','s3'],
+  ['s4','s5'],['s5','s6'],
+  ['s7b','s8'],
+];
+function consecutivePairs(cls) {
+  return gradeGroup(cls) === '1-3' ? CONSECUTIVE_PAIRS_GR13 : CONSECUTIVE_PAIRS_GR46;
+}
+
+function runScheduler() {
+  conflictLog = [];
+  const teacherBusy = {};
+  const classBusy   = {};
+
+  function isAvail(teacher, cls, day, slotId) {
+    const k = day + '|' + slotId;
+    return !teacherBusy[teacher]?.[k] && !classBusy[cls]?.[k];
+  }
+
+  function book(teacher, cls, day, slotId, subject) {
+    const k = day + '|' + slotId;
+    if (!teacherBusy[teacher]) teacherBusy[teacher] = {};
+    if (!classBusy[cls])       classBusy[cls]       = {};
+    teacherBusy[teacher][k] = { subject, classRoom: cls };
+    classBusy[cls][k]        = { subject, teacher };
+  }
+
+  function dayLoad(teacher, day) {
+    return Object.keys(teacherBusy[teacher] || {}).filter(k => k.startsWith(day + '|')).length;
+  }
+
+  // ── STEP 1: Schedule Agama (synchronized per grade) ───────────────────
+  // Rule: for each grade, ALL agama classes happen at the same day+slot(s).
+  // This means: pick a day+slot where every agama teacher is free AND
+  // every class of that grade is free. Then book each agama teacher
+  // against ALL classes of that grade (since we don't know per-student
+  // religion assignment — the slot is "agama hour" for the whole grade).
+  // Each agama teacher needs 3 JP per grade = 1 double + 1 single.
+
+  const SD_GRADES = ['1','2','3','4','5','6'];
+
+  const classesByGrade = {};
+  for (const row of RAW_DATA) {
+    for (const cls of row.classes) {
+      const g = cls.charAt(0);
+      if (!classesByGrade[g]) classesByGrade[g] = new Set();
+      classesByGrade[g].add(cls);
+    }
+  }
+
+  const agamaTeachers = [...new Set(
+    RAW_DATA.filter(r => AGAMA_SUBJECTS.includes(r.subject)).map(r => r.teacher)
+  )];
+
+  // For each agama teacher, we just need to know they teach agama (label is unified)
+
+  for (const grade of SD_GRADES) {
+    const gradeClasses = [...(classesByGrade[grade] || [])];
+    if (!gradeClasses.length) continue;
+    const slots = lessonSlots(gradeClasses[0]);
+    const pairs = consecutivePairs(gradeClasses[0]);
+
+    // Check all agama teachers AND all grade classes are free for a slot
+    function agamaSlotFree(day, slotId) {
+      for (const t of agamaTeachers) {
+        if (teacherBusy[t]?.[day+'|'+slotId]) return false;
+      }
+      for (const cls of gradeClasses) {
+        if (classBusy[cls]?.[day+'|'+slotId]) return false;
+      }
+      return true;
+    }
+
+    // "Agama" is the display label (not the specific religion name)
+    // Store a special teacher marker so the UI knows to show all agama teachers
+    function bookAgamaSlot(day, slotId) {
+      for (const t of agamaTeachers) {
+        if (!teacherBusy[t]) teacherBusy[t] = {};
+        teacherBusy[t][day+'|'+slotId] = { subject: 'Agama', classRoom: 'all-'+grade };
+      }
+      for (const cls of gradeClasses) {
+        if (!classBusy[cls]) classBusy[cls] = {};
+        classBusy[cls][day+'|'+slotId] = { subject: 'Agama', teacher: '__agama__' };
+      }
+    }
+
+    // All 2 JP must land on the SAME day as one double period.
+    let agamaPlaced = 0;
+    let dayIdx      = SD_GRADES.indexOf(grade);
+
+    for (let di = 0; di < DAYS.length && agamaPlaced === 0; di++) {
+      const day = DAYS[(dayIdx + di) % DAYS.length];
+
+      // Try to find a consecutive pair free for all agama teachers + all grade classes
+      for (const [s1, s2] of pairs) {
+        if (agamaSlotFree(day, s1) && agamaSlotFree(day, s2)) {
+          bookAgamaSlot(day, s1);
+          bookAgamaSlot(day, s2);
+          agamaPlaced = 2;
+          break;
+        }
+      }
+
+      // If no consecutive pair, try any 2 free slots on same day
+      if (agamaPlaced === 0) {
+        const freeSlots = slots.filter(s => agamaSlotFree(day, s));
+        if (freeSlots.length >= 2) {
+          bookAgamaSlot(day, freeSlots[0]);
+          bookAgamaSlot(day, freeSlots[1]);
+          agamaPlaced = 2;
+        }
+      }
+    }
+
+    if (agamaPlaced < 2) {
+      conflictLog.push(`⚠ Agama Grade ${grade} — could not place 2 synchronized JP`);
+    }
+  }
+
+  // ── STEP 2: Schedule all non-agama subjects ────────────────────────────
+  // Rules:
+  // - Max 2 JP per subject per day per class
+  // - Prefer doubles (2 consecutive slots = 2 JP) for spread
+  // - Class-centric: fill each class's week completely
+
+  const tasks = [];
+  for (const row of RAW_DATA) {
+    if (AGAMA_SUBJECTS.includes(row.subject)) continue;
+    for (const cls of row.classes) {
+      tasks.push({ teacher: row.teacher, subject: row.subject, classRoom: cls, total: row.jpEach, remaining: row.jpEach });
+    }
+  }
+  function taskKey(t) { return t.teacher+'|'+t.subject+'|'+t.classRoom; }
+
+  const tasksByClass = {};
+  for (const t of tasks) {
+    if (!tasksByClass[t.classRoom]) tasksByClass[t.classRoom] = [];
+    tasksByClass[t.classRoom].push(t);
+  }
+
+  const allClasses = [...new Set(tasks.map(t => t.classRoom))].sort((a,b) => {
+    const ga = parseInt(a), gb = parseInt(b);
+    return ga !== gb ? ga - gb : a.localeCompare(b);
+  });
+
+  // Count how many JP a subject already has on a given day for a class
+  function subjectDayCount(cls, subject, day) {
+    const cData = classBusy[cls] || {};
+    return Object.entries(cData)
+      .filter(([k, v]) => k.startsWith(day+'|') && v.subject === subject)
+      .length;
+  }
+
+  for (const cls of allClasses) {
+    const clsTasks = (tasksByClass[cls] || []).slice().sort((a,b) => b.total - a.total);
+    const slots    = lessonSlots(cls);
+    const pairs    = consecutivePairs(cls);
+
+    for (const task of clsTasks) {
+      // Pass 1: doubles — one per day, respecting max 2/day rule
+      while (task.remaining >= 2) {
+        let placed = false;
+        for (const day of DAYS) {
+          // Already has 2 JP this day for this subject? Skip
+          if (subjectDayCount(cls, task.subject, day) >= 2) continue;
+          for (const [s1, s2] of pairs) {
+            if (isAvail(task.teacher, cls, day, s1) &&
+                isAvail(task.teacher, cls, day, s2)) {
+              book(task.teacher, cls, day, s1, task.subject);
+              book(task.teacher, cls, day, s2, task.subject);
+              task.remaining -= 2;
+              placed = true;
+              break;
+            }
+          }
+          if (placed) break;
+        }
+        if (!placed) break;
+      }
+
+      // Pass 2: singles for odd remainder
+      while (task.remaining > 0) {
+        let placed = false;
+        for (const day of DAYS) {
+          // Max 2 JP per subject per day
+          if (subjectDayCount(cls, task.subject, day) >= 2) continue;
+          for (const slotId of slots) {
+            if (isAvail(task.teacher, cls, day, slotId)) {
+              book(task.teacher, cls, day, slotId, task.subject);
+              task.remaining--;
+              placed = true;
+              break;
+            }
+          }
+          if (placed) break;
+        }
+        if (!placed) {
+          conflictLog.push(`⚠ ${task.teacher} · ${task.subject} · Class ${cls} — ${task.remaining} JP unplaced`);
+          break;
+        }
+      }
+    }
+  }
+
+  scheduleResult = { teacherBusy, classBusy };
+  renderApp();
+}
+
+function resetSchedule() {
+  scheduleResult = null;
+  conflictLog    = [];
+  document.getElementById('statusBadge').innerHTML = '';
+  document.getElementById('app').innerHTML = `
+    <div class="empty-state">
+      <div class="icon">🗓️</div>
+      <p style="font-size:1.1rem;font-weight:600;color:#4a5568">Click "Generate Schedule" to build the timetable</p>
+      <p style="margin-top:8px;font-size:0.9rem">Assigns all SD teachers to time slots, respecting recess and lunch breaks.</p>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════════════════
+let activeTeacher = null;
+let activeTab     = 'byTeacher';
+
+function renderApp() {
+  if (!scheduleResult) return;
+  const totalSlots   = Object.values(scheduleResult.teacherBusy).reduce((s,t) => s + Object.keys(t).length, 0);
+  const teacherCount = Object.keys(scheduleResult.teacherBusy).length;
+
+  document.getElementById('statusBadge').innerHTML =
+    `<span class="badge badge-green">✓ ${totalSlots} slots assigned · ${teacherCount} teachers · ${conflictLog.length} unplaced</span>`;
+
+  const clashCount = countClashes();
+  document.getElementById('app').innerHTML = `
+    <div class="stats-row">
+      <div class="stat-card"><div class="val">${totalSlots}</div><div class="lbl">Total JP Assigned</div></div>
+      <div class="stat-card"><div class="val">${teacherCount}</div><div class="lbl">Teachers Scheduled</div></div>
+      <div class="stat-card"><div class="val" style="color:${conflictLog.length>0?'#c53030':'#276749'}">${conflictLog.length}</div><div class="lbl">Unplaced Slots</div></div>
+      <div class="stat-card"><div class="val" style="color:${clashCount>0?'#c53030':'#276749'}">${clashCount}</div><div class="lbl">Class Clashes</div></div>
+    </div>
+    <div class="tab-row">
+      <button class="tab ${activeTab==='byTeacher'?'active':''}" onclick="switchTab('byTeacher')">By Teacher</button>
+      <button class="tab ${activeTab==='byClass'  ?'active':''}" onclick="switchTab('byClass')">By Class</button>
+      <button class="tab ${activeTab==='clashReport'?'active':''}" onclick="switchTab('clashReport')">⚠ Clashes (${clashCount})</button>
+      <button class="tab ${activeTab==='conflicts'?'active':''}" onclick="switchTab('conflicts')">Unplaced (${conflictLog.length})</button>
+    </div>
+    <div id="tabContent"></div>`;
+  renderTab();
+}
+
+function switchTab(t) { activeTab = t; renderApp(); }
+
+function renderTab() {
+  const el = document.getElementById('tabContent');
+  if (!el) return;
+  if      (activeTab === 'byTeacher')   renderByTeacher(el);
+  else if (activeTab === 'byClass')     renderByClass(el);
+  else if (activeTab === 'clashReport') renderClashReport(el);
+  else                                  renderConflicts(el);
+}
+
+// ── CLASH DETECTION ──────────────────────────────────────────────────────────
+// The scheduler prevents double-booking, but let's verify and surface any issues.
+function countClashes() {
+  let count = 0;
+  for (const [cls, slots] of Object.entries(scheduleResult.classBusy)) {
+    const seen = {};
+    for (const k of Object.keys(slots)) {
+      if (seen[k]) count++;
+      seen[k] = true;
+    }
+  }
+  return count;
+}
+
+function getClashes() {
+  const clashes = [];
+  // Check classBusy for duplicate keys (shouldn't happen with good scheduler, but verify)
+  for (const [cls, slots] of Object.entries(scheduleResult.classBusy)) {
+    const seen = {};
+    for (const [k, entry] of Object.entries(slots)) {
+      if (seen[k]) {
+        clashes.push({ cls, slot: k, a: seen[k], b: entry });
+      }
+      seen[k] = entry;
+    }
+  }
+  // Also check: same class, same day+slot, different teacher entries
+  // (cross-check from teacherBusy angle)
+  for (const [teacher, slots] of Object.entries(scheduleResult.teacherBusy)) {
+    for (const [k, entry] of Object.entries(slots)) {
+      const clsSlots = scheduleResult.classBusy[entry.classRoom];
+      if (!clsSlots || !clsSlots[k]) {
+        clashes.push({ cls: entry.classRoom, slot: k, note: `Missing in classBusy (teacher: ${teacher})` });
+      }
+    }
+  }
+  return clashes;
+}
+
+// ── BY TEACHER ──────────────────────────────────────────────────────────────
+function renderByTeacher(el) {
+  const teachers = Object.keys(scheduleResult.teacherBusy).sort();
+  if (!activeTeacher || !teachers.includes(activeTeacher)) activeTeacher = teachers[0];
+
+  el.innerHTML = `
+    <div class="layout">
+      <div class="sidebar">
+        <h3>Teachers (${teachers.length})</h3>
+        <ul class="teacher-list" id="teacherList"></ul>
+      </div>
+      <div class="main-area" id="teacherPanel"></div>
+    </div>`;
+
+  document.getElementById('teacherList').innerHTML = teachers.map(t => {
+    const jp = Object.keys(scheduleResult.teacherBusy[t]).length;
+    return `<li class="${t===activeTeacher?'active':''}" data-teacher="${t}" onclick="selectTeacher('${t}')">
+      <span>${t}</span><span class="badge badge-blue">${jp} JP</span>
+    </li>`;
+  }).join('');
+
+  renderTeacherGrid();
+}
+
+function selectTeacher(t) {
+  activeTeacher = t;
+  document.querySelectorAll('.teacher-list li').forEach(li => {
+    li.className = li.dataset.teacher === t ? 'active' : '';
+  });
+  renderTeacherGrid();
+}
+
+function renderTeacherGrid() {
+  const panel = document.getElementById('teacherPanel');
+  if (!panel || !activeTeacher) return;
+  const data  = scheduleResult.teacherBusy[activeTeacher];
+  const total = Object.keys(data).length;
+
+  let html = `<div class="main-panel">
+    <h2 style="color:#2b6cb0;margin-bottom:6px">${activeTeacher}</h2>
+    <p style="font-size:0.83rem;color:#718096;margin-bottom:18px">${total} JP assigned this week</p>
+    <div class="timetable-wrap"><table class="tt">
+    <thead><tr>
+      <th class="time-col">Time / Day</th>`;
+  for (const d of DAYS) html += `<th>${d}</th>`;
+  html += `</tr></thead><tbody>`;
+
+  // Pre-compute which rows are "bottom of a double" so we can skip them (rowspan=2 above)
+  // skip[day][rowIdx] = true means this cell is absorbed by the rowspan above it
+  const skip = {};
+  for (const d of DAYS) {
+    skip[d] = {};
+    for (let ri = 0; ri < TIME_ROWS.length - 1; ri++) {
+      const cur  = TIME_ROWS[ri];
+      const next = TIME_ROWS[ri + 1];
+      if (cur.type !== 'lesson' && cur.type !== 'lesson13') continue;
+      if (next.type !== 'lesson' && next.type !== 'lesson13') continue;
+      const kCur  = d + '|' + cur.id;
+      const kNext = d + '|' + next.id;
+      const eCur  = data[kCur];
+      const eNext = data[kNext];
+      if (eCur && eNext && eCur.subject === eNext.subject && eCur.classRoom === eNext.classRoom) {
+        skip[d][ri + 1] = true; // next row is covered by rowspan on cur
+      }
+    }
+  }
+
+  for (let ri = 0; ri < TIME_ROWS.length; ri++) {
+    const row     = TIME_ROWS[ri];
+    const isBreak = row.type === 'break' || row.type === 'lunch13' || row.type === 'lunch46';
+    html += `<tr class="${isBreak ? 'break-row' : ''}">`;
+    html += `<td class="time-label">${row.label}</td>`;
+    if (isBreak) {
+      html += `<td colspan="${DAYS.length}" style="text-align:center">
+        ${row.label.includes('RECESS') ? '☕ Recess (all grades)' : row.label.includes('1–3') ? '🍱 Lunch · Grades 1–3' : '🍱 Lunch · Grades 4–6'}
+      </td>`;
+    } else {
+      for (const d of DAYS) {
+        if (skip[d][ri]) continue; // absorbed by rowspan above
+        const k     = d + '|' + row.id;
+        const entry = data[k];
+        // Check if the next lesson row has the same entry (double period)
+        let rowspan = 1;
+        if (entry) {
+          // Look ahead: is next row also a lesson with same subject+class, not skipped?
+          let nri = ri + 1;
+          while (nri < TIME_ROWS.length) {
+            const nrow = TIME_ROWS[nri];
+            if (nrow.type === 'break' || nrow.type === 'lunch13' || nrow.type === 'lunch46') break;
+            const nk = d + '|' + nrow.id;
+            const ne = data[nk];
+            if (ne && ne.subject === entry.subject && ne.classRoom === entry.classRoom) {
+              rowspan++;
+              nri++;
+            } else break;
+          }
+        }
+        if (entry) {
+          const color = subjectColor(entry.subject);
+          const clsLabel = entry.classRoom.startsWith('all-')
+            ? `Grade ${entry.classRoom.replace('all-','')} (all classes)`
+            : `Class ${entry.classRoom}`;
+          html += `<td rowspan="${rowspan}"><div class="cell" style="background:${color};${rowspan>1?'padding:10px 6px':''}">
+            <div class="subj">${entry.subject}</div>
+            <div class="cls">${clsLabel}</div>
+            ${rowspan > 1 ? `<div style="font-size:0.68rem;color:#718096;margin-top:3px">2× JP</div>` : ''}
+          </div></td>`;
+        } else {
+          html += `<td></td>`;
+        }
+      }
+    }
+    html += `</tr>`;
+  }
+  html += `</tbody></table></div></div>`;
+  panel.innerHTML = html;
+}
+
+// ── BY CLASS ─────────────────────────────────────────────────────────────────
+let activeClass = null;
+
+function renderByClass(el) {
+  const classSet = new Set();
+  for (const row of RAW_DATA) for (const c of row.classes) classSet.add(c);
+  const classes = [...classSet].sort((a,b) => {
+    const ga = parseInt(a), gb = parseInt(b);
+    return ga !== gb ? ga - gb : a.localeCompare(b);
+  });
+
+  if (!activeClass || !classes.includes(activeClass)) activeClass = classes[0];
+
+  el.innerHTML = `
+    <div class="layout">
+      <div class="sidebar">
+        <h3>Classes (${classes.length})</h3>
+        <ul class="teacher-list" id="classList"></ul>
+      </div>
+      <div class="main-area" id="classPanel"></div>
+    </div>`;
+
+  // Group by grade for sidebar
+  const grades = {};
+  for (const c of classes) {
+    const g = c.charAt(0);
+    if (!grades[g]) grades[g] = [];
+    grades[g].push(c);
+  }
+
+  let listHtml = '';
+  for (const [g, cls] of Object.entries(grades)) {
+    listHtml += `<li style="font-size:0.75rem;color:#a0aec0;padding:6px 12px 2px;cursor:default">GRADE ${g}</li>`;
+    for (const c of cls) {
+      const clashHere = hasClash(c);
+      const jpCount   = Object.keys(scheduleResult.classBusy[c] || {}).length;
+      listHtml += `<li class="${c===activeClass?'active':''}" data-class="${c}" onclick="selectClass('${c}')">
+        <span>${clashHere ? '⚠ ' : ''}Class ${c}</span>
+        <span class="badge ${clashHere?'badge-red':'badge-blue'}">${jpCount} JP</span>
+      </li>`;
+    }
+  }
+  document.getElementById('classList').innerHTML = listHtml;
+  renderClassGrid();
+}
+
+function hasClash(cls) {
+  const clsData = scheduleResult.classBusy[cls];
+  if (!clsData) return false;
+  // Check if any teacher has this class booked twice in same slot
+  const slotTeachers = {};
+  for (const [k, entry] of Object.entries(clsData)) {
+    if (!slotTeachers[k]) slotTeachers[k] = [];
+    slotTeachers[k].push(entry.subject);
+  }
+  return Object.values(slotTeachers).some(v => v.length > 1);
+}
+
+function selectClass(c) {
+  activeClass = c;
+  document.querySelectorAll('.teacher-list li[data-class]').forEach(li => {
+    li.className = li.dataset.class === c ? 'active' : '';
+  });
+  renderClassGrid();
+}
+
+function renderClassGrid() {
+  const panel = document.getElementById('classPanel');
+  if (!panel || !activeClass) return;
+
+  const cls   = activeClass;
+  const cData = scheduleResult.classBusy[cls] || {};
+  const grp   = gradeGroup(cls);
+  const total = Object.keys(cData).length;
+
+  // Detect clashes in this class: same slot booked more than once
+  const clashSlots = new Set();
+  const slotEntries = {};
+  for (const [k, entry] of Object.entries(cData)) {
+    if (!slotEntries[k]) slotEntries[k] = [];
+    slotEntries[k].push(entry);
+  }
+  for (const [k, arr] of Object.entries(slotEntries)) {
+    if (arr.length > 1) clashSlots.add(k);
+  }
+
+  const visibleRows = TIME_ROWS.filter(row => {
+    if (row.type === 'lunch13' && grp === '4-6') return false;
+    if (row.type === 'lunch46' && grp === '1-3') return false;
+    if (row.id   === 's7a'    && grp === '4-6') return false;
+    return true;
+  });
+
+  // Pre-compute rowspan skips for double periods
+  const skipRow = {};
+  for (let ri = 0; ri < visibleRows.length - 1; ri++) {
+    const cur  = visibleRows[ri];
+    const next = visibleRows[ri + 1];
+    if (cur.type !== 'lesson' && cur.type !== 'lesson13') continue;
+    if (next.type !== 'lesson' && next.type !== 'lesson13') continue;
+    for (const d of DAYS) {
+      const ec = cData[d + '|' + cur.id];
+      const en = cData[d + '|' + next.id];
+      if (ec && en && ec.subject === en.subject && ec.teacher === en.teacher) {
+        if (!skipRow[d]) skipRow[d] = {};
+        skipRow[d][ri + 1] = true;
+      }
+    }
+  }
+
+  const clashBanner = clashSlots.size > 0
+    ? `<div style="background:#fff5f5;border:1px solid #fc8181;border-radius:8px;padding:10px 16px;margin-bottom:16px;color:#c53030;font-size:0.85rem">
+        ⚠ <b>${clashSlots.size} clash(es) detected</b> — highlighted in red below
+       </div>`
+    : `<div style="background:#f0fff4;border:1px solid #9ae6b4;border-radius:8px;padding:10px 16px;margin-bottom:16px;color:#276749;font-size:0.85rem">
+        ✓ No clashes — all slots are clean
+       </div>`;
+
+  let html = `<div class="main-panel">
+    <h2 style="color:#2b6cb0;margin-bottom:4px">Class ${cls}</h2>
+    <p style="font-size:0.83rem;color:#718096;margin-bottom:16px">Grade ${cls.charAt(0)} · ${total} JP scheduled this week · ${grp === '1-3' ? 'Lunch 11.45–12.15' : 'Lunch 12.20–12.50'}</p>
+    ${clashBanner}
+    <div class="timetable-wrap"><table class="tt">
+    <thead><tr><th class="time-col">Time / Day</th>`;
+  for (const d of DAYS) html += `<th>${d}</th>`;
+  html += `</tr></thead><tbody>`;
+
+  for (let ri = 0; ri < visibleRows.length; ri++) {
+    const row     = visibleRows[ri];
+    const isBreak = row.type === 'break' || row.type === 'lunch13' || row.type === 'lunch46';
+    html += `<tr class="${isBreak ? 'break-row' : ''}">`;
+    html += `<td class="time-label">${row.label}</td>`;
+
+    if (isBreak) {
+      html += `<td colspan="${DAYS.length}" style="text-align:center">
+        ${row.type === 'break' ? '☕ Recess (all grades)' : row.type === 'lunch13' ? '🍱 Lunch · Grades 1–3' : '🍱 Lunch · Grades 4–6'}
+      </td>`;
+    } else {
+      for (const d of DAYS) {
+        if (skipRow[d]?.[ri]) continue;
+        const k     = d + '|' + row.id;
+        const entry = cData[k];
+        const clash = clashSlots.has(k);
+
+        let rowspan = 1;
+        if (entry && !clash) {
+          let nri = ri + 1;
+          while (nri < visibleRows.length) {
+            const nrow = visibleRows[nri];
+            if (nrow.type === 'break' || nrow.type === 'lunch13' || nrow.type === 'lunch46') break;
+            const ne = cData[d + '|' + nrow.id];
+            if (ne && ne.subject === entry.subject && ne.teacher === entry.teacher) { rowspan++; nri++; }
+            else break;
+          }
+        }
+
+        if (clash) {
+          // Show all clashing subjects in red
+          const all = slotEntries[k] || [];
+          html += `<td rowspan="1" style="background:#fff5f5;border:2px solid #fc8181">
+            ${all.map(e => `<div style="font-size:0.75rem;color:#c53030"><b>${e.subject}</b><br><span style="font-size:0.68rem">${e.teacher.split(' ').slice(-1)[0]}</span></div>`).join('<hr style="border-color:#fc8181;margin:2px 0">')}
+          </td>`;
+        } else if (entry) {
+          const color = subjectColor(entry.subject);
+          const teacherLabel = entry.teacher === '__agama__'
+            ? '<span style="font-size:0.7rem;color:#718096">All Agama Teachers</span>'
+            : `<div class="cls">${entry.teacher}</div>`;
+          html += `<td rowspan="${rowspan}">
+            <div class="cell" style="background:${color};${rowspan>1?'padding:10px 6px':''}">
+              <div class="subj">${entry.subject}</div>
+              ${teacherLabel}
+              ${rowspan > 1 ? '<div style="font-size:0.68rem;color:#718096;margin-top:2px">2× JP</div>' : ''}
+            </div>
+          </td>`;
+        } else {
+          html += `<td></td>`;
+        }
+      }
+    }
+    html += `</tr>`;
+  }
+
+  html += `</tbody></table></div></div>`;
+  panel.innerHTML = html;
+}
+
+// ── CLASH REPORT ─────────────────────────────────────────────────────────────
+function renderClashReport(el) {
+  const clashes = getClashes();
+  if (clashes.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">✅</div>
+      <p style="font-size:1.1rem;font-weight:600;color:#276749">Zero clashes detected across all classes!</p>
+      <p style="margin-top:8px;font-size:0.9rem;color:#a0aec0">Every class has at most one subject per time slot.</p>
+    </div>`;
+    return;
+  }
+  let html = `<p style="margin-bottom:16px;color:#718096;font-size:0.85rem">${clashes.length} slot conflict(s) found:</p>
+    <div class="conflict-list">`;
+  for (const c of clashes) {
+    const [day, slotId] = c.slot.split('|');
+    const slotRow = TIME_ROWS.find(r => r.id === slotId);
+    html += `<div class="conflict-item">
+      <b>Class ${c.cls}</b> · ${day} · ${slotRow ? slotRow.label : slotId}
+      ${c.note ? `<br><span style="color:#718096">${c.note}</span>` : ''}
+    </div>`;
+  }
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
+// ── CONFLICTS ────────────────────────────────────────────────────────────────
+function renderConflicts(el) {
+  if (conflictLog.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">✅</div>
+      <p style="font-size:1.1rem;font-weight:600;color:#276749">No conflicts — all sessions placed!</p></div>`;
+  } else {
+    el.innerHTML = `<p style="margin-bottom:12px;color:#718096;font-size:0.85rem">${conflictLog.length} session(s) could not be placed. Consider adjusting class counts or JP loads.</p>
+      <div class="conflict-list">` +
+      conflictLog.map(c => `<div class="conflict-item">${c}</div>`).join('') +
+      `</div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EXPORT CSV
+// ═══════════════════════════════════════════════════════════════════════════
+function exportCSV() {
+  if (!scheduleResult) { alert('Generate the schedule first.'); return; }
+  const slotLabel = {};
+  for (const r of TIME_ROWS) slotLabel[r.id] = r.label.split('·')[0].trim();
+
+  const teachers = Object.keys(scheduleResult.teacherBusy).sort();
+  let csv = 'Teacher,Subject,Class,Day,Time\n';
+  for (const teacher of teachers) {
+    const entries = Object.entries(scheduleResult.teacherBusy[teacher])
+      .sort(([a],[b]) => {
+        const [da,sa] = a.split('|'), [db,sb] = b.split('|');
+        return (DAYS.indexOf(da) - DAYS.indexOf(db)) ||
+               (TIME_ROWS.findIndex(r=>r.id===sa) - TIME_ROWS.findIndex(r=>r.id===sb));
+      });
+    for (const [k, entry] of entries) {
+      const [day, slotId] = k.split('|');
+      csv += `"${teacher}","${entry.subject}","${entry.classRoom}","${day}","${slotLabel[slotId] || slotId}"\n`;
+    }
+  }
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = 'sd_schedule.csv';
+  a.click();
+}
+</script>
+</body>
+</html>
