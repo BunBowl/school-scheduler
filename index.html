@@ -161,11 +161,11 @@ function subjectColor(s) {
 // jpEach = JP per week for EACH class in the list
 // ═══════════════════════════════════════════════════════════════════════════
 const RAW_DATA = [
-  // ── AGAMA: 3 JP per class, grades 1-6, synchronized per grade ────────────
-  { teacher:'Ms Irma',    subject:'Agama Kristen', classes:['1A','1B','1C','1D','1E','2A','2B','2C','2D','3A','3B','3C','3D','4A','4B','4C','5A','5B','5C','6A','6B','6C'], jpEach:3 },
-  { teacher:'Mr Aldin',   subject:'Agama Islam',   classes:['1A','1B','1C','1D','1E','2A','2B','2C','2D','3A','3B','3C','3D','4A','4B','4C','5A','5B','5C','6A','6B','6C'], jpEach:3 },
-  { teacher:'Mr Stefano', subject:'Agama Katolik', classes:['1A','1B','1C','1D','1E','2A','2B','2C','2D','3A','3B','3C','3D','4A','4B','4C','5A','5B','5C','6A','6B','6C'], jpEach:3 },
-  { teacher:'Mr Ziendi',  subject:'Agama Buddha',  classes:['1A','1B','1C','1D','1E','2A','2B','2C','2D','3A','3B','3C','3D','4A','4B','4C','5A','5B','5C','6A','6B','6C'], jpEach:3 },
+  // ── AGAMA: 2 JP per class, grades 1-6, synchronized per grade (one double, same day) ──
+  { teacher:'Ms Irma',    subject:'Agama Kristen', classes:['1A','1B','1C','1D','1E','2A','2B','2C','2D','3A','3B','3C','3D','4A','4B','4C','5A','5B','5C','6A','6B','6C'], jpEach:2 },
+  { teacher:'Mr Aldin',   subject:'Agama Islam',   classes:['1A','1B','1C','1D','1E','2A','2B','2C','2D','3A','3B','3C','3D','4A','4B','4C','5A','5B','5C','6A','6B','6C'], jpEach:2 },
+  { teacher:'Mr Stefano', subject:'Agama Katolik', classes:['1A','1B','1C','1D','1E','2A','2B','2C','2D','3A','3B','3C','3D','4A','4B','4C','5A','5B','5C','6A','6B','6C'], jpEach:2 },
+  { teacher:'Mr Ziendi',  subject:'Agama Buddha',  classes:['1A','1B','1C','1D','1E','2A','2B','2C','2D','3A','3B','3C','3D','4A','4B','4C','5A','5B','5C','6A','6B','6C'], jpEach:2 },
 
   // ── MANDARIN ─────────────────────────────────────────────────────────────
   { teacher:'Ls Inke',   subject:'Mandarin', classes:['1A','1B','1C','1D','1E','2A','2B','2C','2D'], jpEach:3 },
@@ -322,10 +322,15 @@ function runScheduler() {
   const allCBClasses = Object.keys(CB_TEACHERS);
   for (const cls of allCBClasses) {
     const teacher = CB_TEACHERS[cls];
-    // Monday s1
     book(teacher, cls, 'Monday', 's1', 'CB');
-    // Friday s1
     book(teacher, cls, 'Friday', 's1', 'CB');
+  }
+  // Debug: verify CB was booked
+  for (const cls of allCBClasses) {
+    const mon = classBusy[cls]?.['Monday|s1'];
+    const fri = classBusy[cls]?.['Friday|s1'];
+    if (!mon || mon.subject !== 'CB') conflictLog.push(`⚠ CB not booked for ${cls} Monday`);
+    if (!fri || fri.subject !== 'CB') conflictLog.push(`⚠ CB not booked for ${cls} Friday`);
   }
 
 
@@ -383,54 +388,41 @@ function runScheduler() {
       }
     }
 
-    // All 3 JP on the SAME day. Prefer consecutive triple, then double+single.
+    // All 2 JP on the SAME day — one double period only.
     let agamaPlaced = 0;
     let dayIdx      = SD_GRADES.indexOf(grade);
 
     for (let di = 0; di < DAYS.length && agamaPlaced === 0; di++) {
       const day = DAYS[(dayIdx + di) % DAYS.length];
-      const freeSlots = slots.filter(s => agamaSlotFree(day, s));
-      if (freeSlots.length < 3) continue;
 
-      // Option A: 3 consecutive (s1-s2-s3 or s4-s5-s6)
-      const triples = [['s1','s2','s3'],['s4','s5','s6'],['s7a','s7b','s8']];
-      let booked = false;
-      for (const triple of triples) {
-        if (triple.every(s => freeSlots.includes(s))) {
-          triple.forEach(s => bookAgamaSlot(day, s));
-          agamaPlaced = 3; booked = true; break;
+      // Try consecutive pair first
+      for (const [s1, s2] of pairs) {
+        if (agamaSlotFree(day, s1) && agamaSlotFree(day, s2)) {
+          bookAgamaSlot(day, s1);
+          bookAgamaSlot(day, s2);
+          agamaPlaced = 2;
+          break;
         }
       }
-      if (!booked) {
-        // Option B: double + single on same day
-        for (const [s1, s2] of pairs) {
-          if (freeSlots.includes(s1) && freeSlots.includes(s2)) {
-            bookAgamaSlot(day, s1);
-            bookAgamaSlot(day, s2);
-            agamaPlaced = 2;
-            const rest = freeSlots.filter(s => s !== s1 && s !== s2);
-            if (rest.length > 0) { bookAgamaSlot(day, rest[0]); agamaPlaced = 3; }
-            booked = true; break;
-          }
+      // If no consecutive pair, any 2 free slots on same day
+      if (agamaPlaced === 0) {
+        const free = slots.filter(s => agamaSlotFree(day, s));
+        if (free.length >= 2) {
+          bookAgamaSlot(day, free[0]);
+          bookAgamaSlot(day, free[1]);
+          agamaPlaced = 2;
         }
-      }
-      if (!booked) {
-        // Option C: any 3 free slots on same day
-        freeSlots.slice(0, 3).forEach(s => bookAgamaSlot(day, s));
-        agamaPlaced = 3;
       }
     }
 
-    if (agamaPlaced < 3) {
-      conflictLog.push(`⚠ Agama Grade ${grade} — only ${agamaPlaced}/3 JP placed`);
+    if (agamaPlaced < 2) {
+      conflictLog.push(`⚠ Agama Grade ${grade} — could not place 2 synchronized JP`);
     }
   }
 
-  // ── STEP 2: Schedule all non-agama subjects ────────────────────────────
-  // Rules:
-  // - Max 2 JP per subject per day per class
-  // - Prefer doubles (2 consecutive slots = 2 JP) for spread
-  // - Class-centric: fill each class's week completely
+  // ── STEP 2: Schedule all non-agama subjects ──────────────────────────
+  // For each teacher, fully place all JP for each class one at a time,
+  // rotating through classes so no single class monopolizes the teacher.
 
   const tasks = [];
   for (const row of RAW_DATA) {
@@ -439,73 +431,99 @@ function runScheduler() {
       tasks.push({ teacher: row.teacher, subject: row.subject, classRoom: cls, total: row.jpEach, remaining: row.jpEach });
     }
   }
-  function taskKey(t) { return t.teacher+'|'+t.subject+'|'+t.classRoom; }
 
-  const tasksByClass = {};
+  // Group by teacher
+  const tasksByTeacher = {};
   for (const t of tasks) {
-    if (!tasksByClass[t.classRoom]) tasksByClass[t.classRoom] = [];
-    tasksByClass[t.classRoom].push(t);
+    if (!tasksByTeacher[t.teacher]) tasksByTeacher[t.teacher] = [];
+    tasksByTeacher[t.teacher].push(t);
   }
 
-  const allClasses = [...new Set(tasks.map(t => t.classRoom))].sort((a,b) => {
-    const ga = parseInt(a), gb = parseInt(b);
-    return ga !== gb ? ga - gb : a.localeCompare(b);
+  // Sort teachers: heaviest load first
+  const sortedTeachers = Object.keys(tasksByTeacher).sort((a, b) => {
+    const la = tasksByTeacher[a].reduce((s,t) => s+t.total, 0);
+    const lb = tasksByTeacher[b].reduce((s,t) => s+t.total, 0);
+    return lb - la;
   });
 
-  // Count how many JP a subject already has on a given day for a class
-  function subjectDayCount(cls, subject, day) {
-    const cData = classBusy[cls] || {};
-    return Object.entries(cData)
-      .filter(([k, v]) => k.startsWith(day+'|') && v.subject === subject)
-      .length;
+  // Helper: place one double for a task, returns true if placed
+  function placeDouble(teacher, task) {
+    const pairs = consecutivePairs(task.classRoom);
+    for (const day of DAYS) {
+      for (const [s1, s2] of pairs) {
+        if (isAvail(teacher, task.classRoom, day, s1) &&
+            isAvail(teacher, task.classRoom, day, s2)) {
+          book(teacher, task.classRoom, day, s1, task.subject);
+          book(teacher, task.classRoom, day, s2, task.subject);
+          task.remaining -= 2;
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
-  for (const cls of allClasses) {
-    const clsTasks = (tasksByClass[cls] || []).slice().sort((a,b) => b.total - a.total);
-    const slots    = lessonSlots(cls);
-    const pairs    = consecutivePairs(cls);
-
-    for (const task of clsTasks) {
-      // Pass 1: doubles — one per day, respecting max 2/day rule
-      while (task.remaining >= 2) {
-        let placed = false;
-        for (const day of DAYS) {
-          // Already has 2 JP this day for this subject? Skip
-          if (subjectDayCount(cls, task.subject, day) >= 2) continue;
-          for (const [s1, s2] of pairs) {
-            if (isAvail(task.teacher, cls, day, s1) &&
-                isAvail(task.teacher, cls, day, s2)) {
-              book(task.teacher, cls, day, s1, task.subject);
-              book(task.teacher, cls, day, s2, task.subject);
-              task.remaining -= 2;
-              placed = true;
-              break;
-            }
-          }
-          if (placed) break;
+  // Helper: place one single for a task, returns true if placed
+  function placeSingle(teacher, task) {
+    const slots = lessonSlots(task.classRoom);
+    for (const day of DAYS) {
+      for (const slotId of slots) {
+        if (isAvail(teacher, task.classRoom, day, slotId)) {
+          book(teacher, task.classRoom, day, slotId, task.subject);
+          task.remaining--;
+          return true;
         }
-        if (!placed) break;
       }
+    }
+    return false;
+  }
 
-      // Pass 2: singles for odd remainder
-      while (task.remaining > 0) {
-        let placed = false;
-        for (const day of DAYS) {
-          // Max 2 JP per subject per day
-          if (subjectDayCount(cls, task.subject, day) >= 2) continue;
-          for (const slotId of slots) {
-            if (isAvail(task.teacher, cls, day, slotId)) {
-              book(task.teacher, cls, day, slotId, task.subject);
-              task.remaining--;
-              placed = true;
-              break;
-            }
-          }
-          if (placed) break;
+  for (const teacher of sortedTeachers) {
+    const tTasks = tasksByTeacher[teacher].slice().sort((a,b) => b.total - a.total);
+
+    // Interleave: one double per class per outer loop pass
+    // This spreads the teacher's time evenly across all their classes
+    let anyPlaced = true;
+    while (anyPlaced) {
+      anyPlaced = false;
+      for (const task of tTasks) {
+        if (task.remaining <= 0) continue;
+        if (task.remaining >= 2) {
+          if (placeDouble(teacher, task)) { anyPlaced = true; continue; }
         }
-        if (!placed) {
-          conflictLog.push(`⚠ ${task.teacher} · ${task.subject} · Class ${cls} — ${task.remaining} JP unplaced`);
-          break;
+        if (placeSingle(teacher, task)) { anyPlaced = true; }
+      }
+    }
+
+    // Report unplaced
+    for (const task of tTasks) {
+      if (task.remaining > 0) {
+        conflictLog.push(`⚠ ${teacher} · ${task.subject} · Class ${task.classRoom} — ${task.remaining} JP unplaced`);
+        task.remaining = 0;
+      }
+    }
+  }
+
+  // ── STEP 3: Gap-fill any remaining empty slots ─────────────────────────
+  // Only fill with tasks that genuinely still need more JP (remaining > 0)
+  // and have NOT exceeded their total quota
+  const allTasksList = Object.values(tasksByTeacher).flat();
+  const allClassList = [...new Set(allTasksList.map(t => t.classRoom))];
+  for (const cls of allClassList) {
+    const slots = lessonSlots(cls);
+    for (const day of DAYS) {
+      for (const slotId of slots) {
+        if (classBusy[cls]?.[day+'|'+slotId]) continue;
+        const candidates = allTasksList
+          .filter(t => t.classRoom === cls
+                    && t.remaining > 0
+                    && t.remaining <= t.total  // safety cap
+                    && isAvail(t.teacher, cls, day, slotId))
+          .sort((a,b) => b.total - a.total);
+        if (candidates.length > 0) {
+          const pick = candidates[0];
+          book(pick.teacher, cls, day, slotId, pick.subject);
+          pick.remaining--;
         }
       }
     }
