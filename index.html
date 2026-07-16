@@ -157,86 +157,67 @@ function subjectColor(s) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SD TEACHER DATA
-// jpEach = JP periods per week for EACH class listed
-// Based on: x classes × jpEach JP/week
-// Available slots: Gr.1-3 = 9 slots/day × 5 days = 45/week
-//                  Gr.4-6 = 8 slots/day × 5 days = 40/week
+// SD TEACHER DATA — exact values from official teacher schedule spreadsheet
+// jpEach = JP per week for EACH class in the list
 // ═══════════════════════════════════════════════════════════════════════════
 const RAW_DATA = [
-  // ── Agama: 2 JP per grade, same day, synchronized ──────────────────────
-  { teacher:'Ms Irma',     subject:'Agama Kristen', classes:['1A','1B','1C','1D','1E','2A','2B','2C','2D','3A','3B','3C','3D','4A','4B','4C','5A','5B','5C','6A','6B','6C'], jpEach:2 },
-  { teacher:'Mr Aldin',    subject:'Agama Islam',   classes:['1A','1B','1C','1D','1E','2A','2B','2C','2D','3A','3B','3C','3D','4A','4B','4C','5A','5B','5C','6A','6B','6C'], jpEach:2 },
-  { teacher:'Mr Stefano',  subject:'Agama Katolik', classes:['1A','1B','1C','1D','1E','2A','2B','2C','2D','3A','3B','3C','3D','4A','4B','4C','5A','5B','5C','6A','6B','6C'], jpEach:2 },
-  { teacher:'Mr Ziendi',   subject:'Agama Buddha',  classes:['1A','1B','1C','1D','1E','2A','2B','2C','2D','3A','3B','3C','3D','4A','4B','4C','5A','5B','5C','6A','6B','6C'], jpEach:2 },
+  // ── AGAMA: 3 JP per class, grades 1-6, synchronized per grade ────────────
+  { teacher:'Ms Irma',    subject:'Agama Kristen', classes:['1A','1B','1C','1D','1E','2A','2B','2C','2D','3A','3B','3C','3D','4A','4B','4C','5A','5B','5C','6A','6B','6C'], jpEach:3 },
+  { teacher:'Mr Aldin',   subject:'Agama Islam',   classes:['1A','1B','1C','1D','1E','2A','2B','2C','2D','3A','3B','3C','3D','4A','4B','4C','5A','5B','5C','6A','6B','6C'], jpEach:3 },
+  { teacher:'Mr Stefano', subject:'Agama Katolik', classes:['1A','1B','1C','1D','1E','2A','2B','2C','2D','3A','3B','3C','3D','4A','4B','4C','5A','5B','5C','6A','6B','6C'], jpEach:3 },
+  { teacher:'Mr Ziendi',  subject:'Agama Buddha',  classes:['1A','1B','1C','1D','1E','2A','2B','2C','2D','3A','3B','3C','3D','4A','4B','4C','5A','5B','5C','6A','6B','6C'], jpEach:3 },
 
-  // ── Mandarin ─────────────────────────────────────────────────────────────
+  // ── MANDARIN ─────────────────────────────────────────────────────────────
   { teacher:'Ls Inke',   subject:'Mandarin', classes:['1A','1B','1C','1D','1E','2A','2B','2C','2D'], jpEach:3 },
   { teacher:'Ls Junie',  subject:'Mandarin', classes:['3A','3B','3C','3D','4A','4B','4C','5A','5B','5C'], jpEach:3 },
   { teacher:'Ls Devita', subject:'Mandarin', classes:['6A','6B','6C'], jpEach:3 },
 
-  // ── Grade 1 homeroom (each teacher handles ONE class fully) ─────────────
-  // Total per class: 2+3+3+2+5+4+3+3+4 = 29 + Agama2 + Mandarin3 = 34... 
-  // Grade 1 has 45 slots. Remaining 11 filled by specialist teachers below.
+  // ── GRADE 1 HOMEROOM: PKn(3)+BaInd(5)+English(8)+Math(7)+Science(4)=27 ──
+  // CB is FIXED: Mon s1 + Fri s1 (handled in STEP 0, not scheduled freely)
   { teacher:'Ms Qiqi',    subject:'PKn',       classes:['1A'], jpEach:3 },
   { teacher:'Ms Qiqi',    subject:'Bah. Indo', classes:['1A'], jpEach:5 },
-  { teacher:'Ms Qiqi',    subject:'CB',        classes:['1A'], jpEach:2 },
-  { teacher:'Ms Qiqi',    subject:'Math',      classes:['1A'], jpEach:5 },
+  { teacher:'Ms Qiqi',    subject:'English',   classes:['1A'], jpEach:8 },
+  { teacher:'Ms Qiqi',    subject:'Math',      classes:['1A'], jpEach:7 },
   { teacher:'Ms Qiqi',    subject:'Science',   classes:['1A'], jpEach:4 },
   { teacher:'Ms Della',   subject:'PKn',       classes:['1B'], jpEach:3 },
   { teacher:'Ms Della',   subject:'Bah. Indo', classes:['1B'], jpEach:5 },
-  { teacher:'Ms Della',   subject:'CB',        classes:['1B'], jpEach:2 },
-  { teacher:'Ms Della',   subject:'Math',      classes:['1B'], jpEach:5 },
+  { teacher:'Ms Della',   subject:'English',   classes:['1B'], jpEach:8 },
+  { teacher:'Ms Della',   subject:'Math',      classes:['1B'], jpEach:7 },
   { teacher:'Ms Della',   subject:'Science',   classes:['1B'], jpEach:4 },
   { teacher:'Ms Natlie',  subject:'PKn',       classes:['1C'], jpEach:3 },
   { teacher:'Ms Natlie',  subject:'Bah. Indo', classes:['1C'], jpEach:5 },
-  { teacher:'Ms Natlie',  subject:'CB',        classes:['1C'], jpEach:2 },
-  { teacher:'Ms Natlie',  subject:'Math',      classes:['1C'], jpEach:5 },
+  { teacher:'Ms Natlie',  subject:'English',   classes:['1C'], jpEach:8 },
+  { teacher:'Ms Natlie',  subject:'Math',      classes:['1C'], jpEach:7 },
   { teacher:'Ms Natlie',  subject:'Science',   classes:['1C'], jpEach:4 },
   { teacher:'Ms Suri',    subject:'PKn',       classes:['1D'], jpEach:3 },
   { teacher:'Ms Suri',    subject:'Bah. Indo', classes:['1D'], jpEach:5 },
-  { teacher:'Ms Suri',    subject:'CB',        classes:['1D'], jpEach:2 },
-  { teacher:'Ms Suri',    subject:'Math',      classes:['1D'], jpEach:5 },
+  { teacher:'Ms Suri',    subject:'English',   classes:['1D'], jpEach:8 },
+  { teacher:'Ms Suri',    subject:'Math',      classes:['1D'], jpEach:7 },
   { teacher:'Ms Suri',    subject:'Science',   classes:['1D'], jpEach:4 },
   { teacher:'Ms Cinthya', subject:'PKn',       classes:['1E'], jpEach:3 },
   { teacher:'Ms Cinthya', subject:'Bah. Indo', classes:['1E'], jpEach:5 },
-  { teacher:'Ms Cinthya', subject:'CB',        classes:['1E'], jpEach:2 },
-  { teacher:'Ms Cinthya', subject:'Math',      classes:['1E'], jpEach:5 },
+  { teacher:'Ms Cinthya', subject:'English',   classes:['1E'], jpEach:8 },
+  { teacher:'Ms Cinthya', subject:'Math',      classes:['1E'], jpEach:7 },
   { teacher:'Ms Cinthya', subject:'Science',   classes:['1E'], jpEach:4 },
 
-  // Grade 1 specialist: English(6) + SBK(3) + PJOK(3) + Coding(4) = 16
-  // Agama(2) + Mandarin(3) + homeroom(22) + specialists(16) = 43 → need 2 more
-  // Add English to homeroom teachers to reach 45
-  { teacher:'Ms Qiqi',    subject:'English',   classes:['1A'], jpEach:8 },
-  { teacher:'Ms Della',   subject:'English',   classes:['1B'], jpEach:8 },
-  { teacher:'Ms Natlie',  subject:'English',   classes:['1C'], jpEach:8 },
-  { teacher:'Ms Suri',    subject:'English',   classes:['1D'], jpEach:8 },
-  { teacher:'Ms Cinthya', subject:'English',   classes:['1E'], jpEach:8 },
-
-  // ── Grade 2: PKn(3)+BaInd(5)+CB(2)+Math(7)+Science(4)+English(8)+Coding(4) = 33
-  // + Agama(2)+Mandarin(3)+SBK(3)+PJOK(3) = 44 → +1 from CB for 2B/2C/2D ──
+  // ── GRADE 2: PKn(3)+BaInd(5)+Math(7)+Science(4)+English(8)+Coding(4)=31 ──
   { teacher:'Ms Desi',   subject:'PKn',       classes:['2A','2B','2C','2D'], jpEach:3 },
   { teacher:'Ms Desi',   subject:'Bah. Indo', classes:['2A','2B','2C','2D'], jpEach:5 },
-  { teacher:'Ms Desi',   subject:'CB',        classes:['2A','2B','2C','2D'], jpEach:2 },
   { teacher:'Mr Dom',    subject:'Math',      classes:['2A','2B','2C','2D'], jpEach:7 },
   { teacher:'Mr Naufal', subject:'Science',   classes:['2A','2B','2C','2D'], jpEach:4 },
   { teacher:'Ms Wildha', subject:'English',   classes:['2A','2B','2C','2D'], jpEach:8 },
   { teacher:'Ms Sri',    subject:'Coding',    classes:['2A','2B','2C','2D'], jpEach:4 },
 
-  // ── Grade 3: PKn(3)+BaInd(4)+CB(2)+Math(5)+Sci(4)+Eng(7)+Coding(4)+IPAS(4)=33
-  // + Agama(2)+Mandarin(3)+SBK(3)+PJOK(3) = 44 → CB only 3A, rest get +1 PKn ──
+  // ── GRADE 3: PKn(3)+BaInd(4)+Math(5)+Sci(4)+Eng(7)+Coding(4)+IPAS(4)=31 ──
   { teacher:'Ms Sari',      subject:'PKn',       classes:['3A','3B','3C','3D'], jpEach:3 },
   { teacher:'Ms Sari',      subject:'Bah. Indo', classes:['3A','3B','3C','3D'], jpEach:4 },
-  { teacher:'Ms Sari',      subject:'CB',        classes:['3A','3B','3C','3D'], jpEach:2 },
   { teacher:'Ms Dwi',       subject:'Math',      classes:['3A','3B','3C','3D'], jpEach:5 },
   { teacher:'Ms Fitriyani', subject:'Science',   classes:['3A','3B','3C','3D'], jpEach:4 },
   { teacher:'Ms English3',  subject:'English',   classes:['3A','3B','3C','3D'], jpEach:7 },
   { teacher:'Mr Reza',      subject:'Coding',    classes:['3A','3B','3C','3D'], jpEach:4 },
   { teacher:'Ms Tari',      subject:'IPAS',      classes:['3A','3B','3C','3D'], jpEach:4 },
 
-  // ── Grade 4: 8 slots/day × 5 = 40 JP/week ────────────────────────────────
-  // PKn(3)+BaInd(4)+Math(4)+Eng(5)+Sci(4)+Coding(3)+IPAS(5)+SBK(3)+PJOK(3)=34
-  // + Agama(2)+Mandarin(3) = 39 → +1 = 40 (add 1 extra to PKn)
+  // ── GRADE 4: PKn(3)+BaInd(4)+Math(4)+Eng(5)+Sci(4)+Coding(3)+IPAS(5)=28 ──
   { teacher:'Ms Yanti',     subject:'PKn',       classes:['4A','4B','4C'], jpEach:3 },
   { teacher:'Ms Sri',       subject:'Bah. Indo', classes:['4A','4B','4C'], jpEach:4 },
   { teacher:'Ms Hikmah',    subject:'Math',      classes:['4A','4B','4C'], jpEach:4 },
@@ -244,42 +225,34 @@ const RAW_DATA = [
   { teacher:'Mr Naufal',    subject:'Science',   classes:['4A','4B','4C'], jpEach:4 },
   { teacher:'Ms Islah',     subject:'Coding',    classes:['4A','4B','4C'], jpEach:3 },
   { teacher:'Ms Rahma',     subject:'IPAS',      classes:['4A','4B','4C'], jpEach:5 },
-  { teacher:'Mr Mike',      subject:'SBK',       classes:['4A','4B','4C'], jpEach:3 },
-  { teacher:'Mr Chaerul',   subject:'PJOK',      classes:['4A','4B','4C'], jpEach:3 },
 
-  // ── Grade 5: 40 JP/week ───────────────────────────────────────────────────
-  // PKn(3)+BaInd(4)+Math(3)+Eng(5)+Sci(4)+Coding(3)+IPAS(4)+SBK(3)+PJOK(3)=32
-  // + Agama(2)+Mandarin(3) = 37 → +3 = 40 (spread: PKn+1, Math+1, Coding+1)
+  // ── GRADE 5: PKn(3)+BaInd(4)+Math(4)+Eng(5)+Sci(4)+Coding(3)+IPAS(4)=27 ──
   { teacher:'Ms Yanti',    subject:'PKn',       classes:['5A','5B','5C'], jpEach:3 },
   { teacher:'Ms Devianti', subject:'Bah. Indo', classes:['5A','5B','5C'], jpEach:4 },
-  { teacher:'Ms Hikmah',   subject:'Math',      classes:['5A','5B','5C'], jpEach:4 },
+  { teacher:'Ms Islah',    subject:'Math',      classes:['5A','5B','5C'], jpEach:4 },
   { teacher:'Ms Rizky',    subject:'English',   classes:['5A','5B','5C'], jpEach:5 },
   { teacher:'Ms Rizky',    subject:'Science',   classes:['5A','5B','5C'], jpEach:4 },
-  { teacher:'Ms Annisa',   subject:'Coding',    classes:['5A','5B','5C'], jpEach:4 },
+  { teacher:'Ms Annisa',   subject:'Coding',    classes:['5A','5B','5C'], jpEach:3 },
   { teacher:'Mr Reza',     subject:'IPAS',      classes:['5A','5B','5C'], jpEach:4 },
-  { teacher:'Ms Tiara',    subject:'SBK',       classes:['5A','5B','5C'], jpEach:3 },
-  { teacher:'Mr Nober',    subject:'PJOK',      classes:['5A','5B','5C'], jpEach:3 },
 
-  // ── Grade 6: 40 JP/week ───────────────────────────────────────────────────
-  // PKn(3)+BaInd(4)+Math(3)+Eng(5)+Sci(4)+Coding(3)+SBK(3)+PJOK(3)=28
-  // + Agama(2)+Mandarin(3) = 33 → +7 = 40
-  // Boost: BaInd+1, Math+2, Eng+1, Sci+1, Coding+1, PKn+1
-  { teacher:'Ms Yanti',    subject:'PKn',       classes:['6A','6B','6C'], jpEach:4 },
-  { teacher:'Ms Devianti', subject:'Bah. Indo', classes:['6A','6B','6C'], jpEach:5 },
-  { teacher:'Ms Hikmah',   subject:'Math',      classes:['6A','6B','6C'], jpEach:5 },
-  { teacher:'Ms Ivon',     subject:'English',   classes:['6A','6B','6C'], jpEach:6 },
-  { teacher:'Ms Ivon',     subject:'Science',   classes:['6A','6B','6C'], jpEach:5 },
-  { teacher:'Ms Annisa',   subject:'Coding',    classes:['6A','6B','6C'], jpEach:4 },
-  { teacher:'Ms Tiara',    subject:'SBK',       classes:['6A','6B','6C'], jpEach:3 },
-  { teacher:'Mr Nober',    subject:'PJOK',      classes:['6A','6B','6C'], jpEach:3 },
+  // ── GRADE 6: PKn(3)+BaInd(4)+Math(3)+Eng(5)+Sci(4)+Coding(3)+IPAS(5)=27 ──
+  { teacher:'Ms Yanti',    subject:'PKn',       classes:['6A','6B','6C'], jpEach:3 },
+  { teacher:'Ms Devianti', subject:'Bah. Indo', classes:['6A','6B','6C'], jpEach:4 },
+  { teacher:'Ms Hikmah',   subject:'Math',      classes:['6A','6B','6C'], jpEach:3 },
+  { teacher:'Ms Ivon',     subject:'English',   classes:['6A','6B','6C'], jpEach:5 },
+  { teacher:'Ms Ivon',     subject:'Science',   classes:['6A','6B','6C'], jpEach:4 },
+  { teacher:'Ms Annisa',   subject:'Coding',    classes:['6A','6B','6C'], jpEach:3 },
+  { teacher:'Ms Rahma',    subject:'IPAS',      classes:['6A','6B','6C'], jpEach:5 },
 
-  // ── SBK & PJOK for grades 1-3 ────────────────────────────────────────────
-  { teacher:'Ms Tiara',  subject:'SBK',  classes:['1A','1B','1C','1D','1E'], jpEach:3 },
-  { teacher:'Mr Mike',   subject:'SBK',  classes:['2A','2B','2C','2D','3A','3B','3C','3D'], jpEach:3 },
-  { teacher:'Mr Nober',  subject:'PJOK', classes:['1A','1B','1C','1D','1E'], jpEach:3 },
-  { teacher:'Mr Chaerul',subject:'PJOK', classes:['2A','2B','2C','2D','3A','3B','3C','3D'], jpEach:3 },
+  // ── SBK (Art) ─────────────────────────────────────────────────────────────
+  { teacher:'Ms Tiara', subject:'SBK', classes:['1A','1B','1C','1D','1E','5A','5B','5C','6A','6B','6C'], jpEach:3 },
+  { teacher:'Mr Mike',  subject:'SBK', classes:['2A','2B','2C','2D','3A','3B','3C','3D','4A','4B','4C'], jpEach:3 },
 
-  // ── Coding grade 1 ────────────────────────────────────────────────────────
+  // ── PJOK (PE) ─────────────────────────────────────────────────────────────
+  { teacher:'Mr Nober',   subject:'PJOK', classes:['1A','1B','1C','1D','1E','5A','5B','5C','6A','6B','6C'], jpEach:3 },
+  { teacher:'Mr Chaerul', subject:'PJOK', classes:['2A','2B','2C','2D','3A','3B','3C','3D','4A','4B','4C'], jpEach:3 },
+
+  // ── CODING GRADE 1 ────────────────────────────────────────────────────────
   { teacher:'Ms Eunike', subject:'Coding', classes:['1A','1B','1C','1D','1E'], jpEach:4 },
 ];
 </script>
@@ -335,7 +308,27 @@ function runScheduler() {
     return Object.keys(teacherBusy[teacher] || {}).filter(k => k.startsWith(day + '|')).length;
   }
 
-  // ── STEP 1: Schedule Agama (synchronized per grade) ───────────────────
+  // ── STEP 0: CB fixed slots — Monday JP1 and Friday JP1 for ALL classes ──
+  // CB teacher is the homeroom/primary teacher for each class
+  const CB_TEACHERS = {
+    '1A':'Ms Qiqi',   '1B':'Ms Della',   '1C':'Ms Natlie',
+    '1D':'Ms Suri',   '1E':'Ms Cinthya',
+    '2A':'Ms Desi',   '2B':'Ms Desi',    '2C':'Ms Desi',   '2D':'Ms Desi',
+    '3A':'Ms Sari',   '3B':'Ms Sari',    '3C':'Ms Sari',   '3D':'Ms Sari',
+    '4A':'Ms Yanti',  '4B':'Ms Yanti',   '4C':'Ms Yanti',
+    '5A':'Ms Rizky',  '5B':'Ms Rizky',   '5C':'Ms Rizky',
+    '6A':'Ms Ivon',   '6B':'Ms Ivon',    '6C':'Ms Ivon',
+  };
+  const allCBClasses = Object.keys(CB_TEACHERS);
+  for (const cls of allCBClasses) {
+    const teacher = CB_TEACHERS[cls];
+    // Monday s1
+    book(teacher, cls, 'Monday', 's1', 'CB');
+    // Friday s1
+    book(teacher, cls, 'Friday', 's1', 'CB');
+  }
+
+
   // Rule: for each grade, ALL agama classes happen at the same day+slot(s).
   // This means: pick a day+slot where every agama teacher is free AND
   // every class of that grade is free. Then book each agama teacher
@@ -390,36 +383,46 @@ function runScheduler() {
       }
     }
 
-    // All 2 JP must land on the SAME day as one double period.
+    // All 3 JP on the SAME day. Prefer consecutive triple, then double+single.
     let agamaPlaced = 0;
     let dayIdx      = SD_GRADES.indexOf(grade);
 
     for (let di = 0; di < DAYS.length && agamaPlaced === 0; di++) {
       const day = DAYS[(dayIdx + di) % DAYS.length];
+      const freeSlots = slots.filter(s => agamaSlotFree(day, s));
+      if (freeSlots.length < 3) continue;
 
-      // Try to find a consecutive pair free for all agama teachers + all grade classes
-      for (const [s1, s2] of pairs) {
-        if (agamaSlotFree(day, s1) && agamaSlotFree(day, s2)) {
-          bookAgamaSlot(day, s1);
-          bookAgamaSlot(day, s2);
-          agamaPlaced = 2;
-          break;
+      // Option A: 3 consecutive (s1-s2-s3 or s4-s5-s6)
+      const triples = [['s1','s2','s3'],['s4','s5','s6'],['s7a','s7b','s8']];
+      let booked = false;
+      for (const triple of triples) {
+        if (triple.every(s => freeSlots.includes(s))) {
+          triple.forEach(s => bookAgamaSlot(day, s));
+          agamaPlaced = 3; booked = true; break;
         }
       }
-
-      // If no consecutive pair, try any 2 free slots on same day
-      if (agamaPlaced === 0) {
-        const freeSlots = slots.filter(s => agamaSlotFree(day, s));
-        if (freeSlots.length >= 2) {
-          bookAgamaSlot(day, freeSlots[0]);
-          bookAgamaSlot(day, freeSlots[1]);
-          agamaPlaced = 2;
+      if (!booked) {
+        // Option B: double + single on same day
+        for (const [s1, s2] of pairs) {
+          if (freeSlots.includes(s1) && freeSlots.includes(s2)) {
+            bookAgamaSlot(day, s1);
+            bookAgamaSlot(day, s2);
+            agamaPlaced = 2;
+            const rest = freeSlots.filter(s => s !== s1 && s !== s2);
+            if (rest.length > 0) { bookAgamaSlot(day, rest[0]); agamaPlaced = 3; }
+            booked = true; break;
+          }
         }
+      }
+      if (!booked) {
+        // Option C: any 3 free slots on same day
+        freeSlots.slice(0, 3).forEach(s => bookAgamaSlot(day, s));
+        agamaPlaced = 3;
       }
     }
 
-    if (agamaPlaced < 2) {
-      conflictLog.push(`⚠ Agama Grade ${grade} — could not place 2 synchronized JP`);
+    if (agamaPlaced < 3) {
+      conflictLog.push(`⚠ Agama Grade ${grade} — only ${agamaPlaced}/3 JP placed`);
     }
   }
 
